@@ -7,7 +7,8 @@
 `docker run -d -v ~/mqttdbs:/etc/mqttdbs:rw --restart always --name mqttdbs churruscat/mqttdbs:latest `
 
 If you are using docker-compose, add to your docker-compose.yaml file:
- ```mqttdbs:   
+ ```
+ mqttdbs:   
     container_name: mqttdbs    
     image: churruscat/mqttdbs:latest      
     volumes:      
@@ -15,10 +16,12 @@ If you are using docker-compose, add to your docker-compose.yaml file:
     depends_on:     
       - mosquitto     
       - influxdb      
-    restart: on-failure```  
+    restart: on-failure
+ ```  
 
  ## configuration file mqttdbs.conf
-```; configuration data of mqtt broker that mqttdbs reads.     
+```
+; configuration data of mqtt broker that mqttdbs reads.     
  [mqtt_broker_read]    
 	address=mosquitto      
 	userid=      
@@ -48,5 +51,6 @@ If you are using docker-compose, add to your docker-compose.yaml file:
 	org= MyOrg    
 	bucket=iotdb    
 	address=xx.yy.zz.aa    
-	token =xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx```   
+	token =xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```   
 
