@@ -27,18 +27,18 @@ tipoLogging=['none','debug', 'info', 'warning', 'error' ,'critical']
 clientes={
     "reader":{"Cliente_name":"c_reader","broker":"127.0.0.1","port":1883,"name":"Reader",
               "Cliente":"Reader","userid":"","password":"",
-              "subscribe_topic":["meteo/#"],"publish_topic":"cooked", "activo":True},
+              "subscribe_topic":["meteo/envia"],"publish_topic":"cooked", "activo":True},
     #I will use reader2 to resend messages when there are problems storing records          
        
     "sender":{"Cliente_name":"c_sender","broker":"","port":1883,"name":"Sender",
               "Cliente":"Sender","userid":"","password":"",
-              "publish_topic":"cooked","subscribe_topic":[("None",1)],
+              "publish_topic":"cooked","subscribe_topic":[("Do_not",1)],
               "activo":False},
     }
 
 def db_insert(dbversion,body):
     response=False
-    logging.debug("raw payload to dabinsert: "+body)
+    logging.debug("raw payload to dbinsert: "+body)
     try:
         body1=json.loads(body)  # ???? dumps?  hago loads y luego dumps
     except:
@@ -136,7 +136,7 @@ def on_disconnect(mqttCliente, userdata, rc):
     reconectate(mqttCliente)   
 
 def on_publish(mqttCliente, userdata, mid):
-    logging.info("message published "+ str(mid))   
+    logging.debug("message published "+ str(mid))   
 
 def reconectate(mqttCliente):
     conectado=False
@@ -156,24 +156,28 @@ def reconectate(mqttCliente):
 def arrancaCliente(mqttStruct , cleanSess):
         #global clientes
         if (cleanSess==False):
-            mqttStruct ["Cliente"] = mqtt.Client(mqttStruct ["Cliente_name"],clean_session=cleanSess)
+            mqttStruct["Cliente"] = mqtt.Client(mqttStruct ["Cliente_name"],clean_session=cleanSess)
         else:
-            mqttStruct ["Cliente"] = mqtt.Client(clean_session=cleanSess)      
-        mqttStruct ["Cliente"].on_message = on_message
-        mqttStruct ["Cliente"].on_connect = on_connect
-        mqttStruct ["Cliente"].on_publish = on_publish
-        mqttStruct ["Cliente"].on_subscribe = on_subscribe
+            mqttStruct["Cliente"] = mqtt.Client(clean_session=cleanSess)      
+        mqttStruct["Cliente"].on_message = on_message
+        mqttStruct["Cliente"].on_connect = on_connect
+        mqttStruct["Cliente"].on_publish = on_publish
+        mqttStruct["Cliente"].on_subscribe = on_subscribe
         logging.info("call back registered for "+mqttStruct["Cliente_name"])
-        if (mqttStruct ["userid"]!=''):
-            mqttStruct ["Cliente"].username_pw_set(mqttStruct ["userid"] , password=mqttStruct ["password"])
+        if (mqttStruct["userid"]!=''):
+            mqttStruct["Cliente"].username_pw_set(mqttStruct ["userid"] , password=mqttStruct ["password"])
         if (len(mqttStruct["broker"])<2):
             logging.info("No resending messages")
         else:             
-            mqttStruct ["Cliente"].connect(mqttStruct["broker"],mqttStruct ["port"])
-            mqttStruct ["Cliente"].reconnect_delay_set(1, 120)
+            mqttStruct["Cliente"].connect(mqttStruct["broker"],mqttStruct ["port"])
+            mqttStruct["Cliente"].reconnect_delay_set(1, 120)
         logging.info("Connected, now subscribe  "+mqttStruct["Cliente_name"]+" topics ")
         logging.info(mqttStruct["subscribe_topic"])
-        mqttStruct ["Cliente"].subscribe(mqttStruct["subscribe_topic"])
+        if (mqttStruct["name"]!="Sender"):
+            mqttStruct["Cliente"].subscribe(mqttStruct["subscribe_topic"])
+            logging.debug("Subscribe Reader")            
+        else:
+            logging.debug("do not subscribe Sender")
     
 def on_message(mqttCliente, userdata, message):
     global clientes
@@ -195,10 +199,10 @@ def on_message(mqttCliente, userdata, message):
             usecs=usecs*10
         try:
             payload=json.loads(message.payload.decode()) 
+            dato='{"measurement":"'+measurement+'","time":'+str(int(secs))+str(int(usecs*1e9))+',"fields":'+json.dumps(payload[0])+',"tags":'+json.dumps(payload[1])+'}'
         except:
-            logging.warning("Could jsonize: "+message.payload.decode())
+            logging.warning("Could not jsonize: "+message.payload.decode())
             return
-        dato='{"measurement":"'+measurement+'","time":'+str(int(secs))+str(int(usecs*1e9))+',"fields":'+json.dumps(payload[0])+',"tags":'+json.dumps(payload[1])+'}'
     else :
         logging.debug(message.payload)
         dato=json.loads(message.payload)
@@ -223,7 +227,6 @@ def on_message(mqttCliente, userdata, message):
             else:
                 logging.warning("Connection error type 2 = "+ exErr)                   
             sleep(30)
-            #arrancaCliente(clientes["sender"],False)
     return
 
 if __name__ == '__main__':
@@ -291,7 +294,7 @@ if __name__ == '__main__':
         if parser.has_option("influxdb_V2","token"):
             token=parser.get("influxdb_V2","token")
     logging.info("dbversion: "+str(dbversion))      
- 
+    sleep(30)
     ## Define mqtt reader
     arrancaCliente(clientes["reader"],False)
     logging.info("READER")
@@ -300,12 +303,14 @@ if __name__ == '__main__':
     logging.info(clientes["sender"])    
     #and, if configured, client gateway that will resend messages to remote queue
     clientes["reader"]["Cliente"].loop_start()                 #start the loop
+
     if (clientes["sender"]["broker"]!=''):
         arrancando=True
         logging.info("starting sender to %s",clientes["sender"]["broker"])
         while (arrancando):
             try:
                 arrancaCliente(clientes["sender"],True)
+                clientes["sender"]["Cliente"].loop_start()                 #start the loop
                 arrancando=False
             except:
                 logging.warning("could not connect to remote: "+clientes["sender"]["broker"])
