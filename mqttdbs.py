@@ -204,9 +204,13 @@ def on_message(mqttCliente, userdata, message):
             logging.warning("Could not jsonize: "+message.payload.decode())
             return
     else :
-        logging.debug(message.payload)
-        dato=json.loads(message.payload)
-    logging.debug("dato: "+dato)     
+        try:
+            dato=json.loads(message.payload)
+            logging.debug(message.payload)
+        except:
+            logging.warning("Error loading",message.payload)
+            return
+    logging.debug(dato)     
     logging.debug("salva en influxdb")
     if(db_insert(dbversion,dato)==False):   #if I can't store record, I resend it "cooked" to mqtt queue
         logging.warning("Record not stored will re-queue it")
@@ -309,7 +313,7 @@ if __name__ == '__main__':
         logging.info("starting sender to %s",clientes["sender"]["broker"])
         while (arrancando):
             try:
-                arrancaCliente(clientes["sender"],True)
+                arrancaCliente(clientes["sender"],False)
                 clientes["sender"]["Cliente"].loop_start()                 #start the loop
                 arrancando=False
             except:
