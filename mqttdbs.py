@@ -38,12 +38,12 @@ clientes={
 
 def db_insert(dbversion,body):
     response=False
-    logging.debug("raw payload to dbinsert: "+body)
+    logging.debug("raw payload to dbinsert: "+str(body))
     try:
         body1=json.loads(body)  # ???? dumps?  hago loads y luego dumps
     except:
         body1=body
-        logging.warning("unexpected format :"+body)
+        logging.debg("unexpected format, could not json.loads, copying instead :"+str(body))
     try:
         for clave in body1['fields'].copy():
             logging.debug("Exploro clave: %s",clave)
