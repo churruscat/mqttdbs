@@ -43,7 +43,7 @@ def db_insert(dbversion,body):
         body1=json.loads(body)  # ???? dumps?  hago loads y luego dumps
     except:
         body1=body
-        logging.debg("unexpected format, could not json.loads, copying instead :"+str(body))
+        logging.debug("unexpected format, could not json.loads, copying instead :"+str(body))
     try:
         for clave in body1['fields'].copy():
             logging.debug("Exploro clave: %s",clave)
@@ -109,7 +109,7 @@ def db_insert(dbversion,body):
         except influxdb.exceptions.InfluxDBClientError as err:
             logging.warning("record discarded :"+str(response)+' ->'+str(punto))
             logging.warning(" Client Error: "+ str(err))
-            return True  #if here care issues onclient side, I discard the record
+            return True  #if here are issues onclient side, I discard the record
         except influxdb.exceptions.InfluxDBServerError as err:
             logging.warning("record discarded :"+str(response)+' ->'+str(punto))
             logging.warning("Server Error: "+ str(err))
