@@ -120,7 +120,7 @@ def db_insert(dbversion,body):
             logging.warning("record discarded :"+str(response)+' ->'+str(punto))
             logging.warning("Undetermined error: ")
             logging.warning("host: %s , org:%s ,bucket:%s \n token: %s",dbserver, org,  bucket, token)
-            return True 
+            return False 
 
 # Funciones de Callback
 def on_connect(mqttCliente, userdata, flags, rc):
